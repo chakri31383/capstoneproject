@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ file.name }} - Secure File Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- File Preview -->
+        <div class="card shadow">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-file me-2"></i>{{ file.name }}
+                </h5>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'filemanager:download_file' file.id %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-download me-1"></i>Download
+                    </a>
+                    {% if file.owner == request.user %}
+                    <a href="{% url 'filemanager:edit_file' file.id %}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit me-1"></i>Edit
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- File Preview Area -->
+                <div class="file-preview mb-4">
+                    {% if file.file_type in '.jpg,.jpeg,.png,.gif' %}
+                        <img src="{{ file.file.url }}" alt="{{ file.name }}" class="img-fluid rounded">
+                    {% elif file.file_type == '.pdf' %}
+                        <div class="text-center p-4">
+                            <i class="fas fa-file-pdf fa-5x text-danger mb-3"></i>
+                            <p class="text-muted">PDF Document</p>
+                            <iframe src="{{ file.file.url }}" width="100%" height="500px" class="border rounded"></iframe>
+                        </div>
+                    {% elif file.file_type in '.mp4,.avi,.mov' %}
+                        <video controls class="w-100 rounded">
+                            <source src="{{ file.file.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    {% else %}
+                        <div class="text-center p-5">
+                            {% if file.file_type == '.doc' or file.file_type == '.docx' %}
+                                <i class="fas fa-file-word fa-5x text-primary mb-3"></i>
+                            {% elif file.file_type == '.xls' or file.file_type == '.xlsx' %}
+                                <i class="fas fa-file-excel fa-5x text-success mb-3"></i>
+                            {% elif file.file_type == '.ppt' or file.file_type == '.pptx' %}
+                                <i class="fas fa-file-powerpoint fa-5x text-warning mb-3"></i>
+                            {% elif file.file_type == '.zip' or file.file_type == '.rar' %}
+                                <i class="fas fa-file-archive fa-5x text-info mb-3"></i>
+                            {% else %}
+                                <i class="fas fa-file fa-5x text-secondary mb-3"></i>
+                            {% endif %}
+                            <h4>{{ file.name }}</h4>
+                            <p class="text-muted">{{ file.formatted_size }} • {{ file.file_type|upper }} File</p>
+                            <p class="text-muted">Click download to open this file</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Description -->
+                {% if file.description %}
+                <div class="mb-4">
+                    <h6>Description</h6>
+                    <p class="text-muted">{{ file.description }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Comments Section (if implemented) -->
+        <div class="card shadow mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Comments</h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted text-center">Comments feature coming soon...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- File Information -->
+        <div class="card shadow">
+            <div class="card-header">
+                <h6 class="mb-0">File Information</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless">
+                    <tr>
+                        <td><strong>Owner:</strong></td>
+                        <td>{{ file.owner.get_full_name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Size:</strong></td>
+                        <td>{{ file.formatted_size }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Type:</strong></td>
+                        <td>{{ file.file_type|upper }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Category:</strong></td>
+                        <td>{{ file.category.name|default:"Uncategorized" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Visibility:</strong></td>
+                        <td>
+                            <span class="badge bg-{% if file.visibility == 'public' %}success{% elif file.visibility == 'restricted' %}warning{% else %}secondary{% endif %}">
+                                {{ file.get_visibility_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Created:</strong></td>
+                        <td>{{ file.created_at|date:"M d, Y g:i A" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Modified:</strong></td>
+                        <td>{{ file.updated_at|date:"M d, Y g:i A" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Downloads:</strong></td>
+                        <td>{{ file.download_count }}</td>
+                    </tr>
+                </table>
+                
+                {% if file.owner == request.user %}
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-{% if file.is_favorite %}danger{% else %}secondary{% endif %}" 
+                            onclick="toggleFavorite({{ file.id }})">
+                        <i class="fas fa-heart me-2"></i>
+                        {% if file.is_favorite %}Remove from Favorites{% else %}Add to Favorites{% endif %}
+                    </button>
+                    
+                    {% if file.visibility == 'restricted' %}
+                    <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#shareModal">
+                        <i class="fas fa-share-alt me-2"></i>Share File
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- File Activity -->
+        <div class="card shadow mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Recent Activity</h6>
+            </div>
+            <div class="card-body">
+                {% for activity in file.activities.all|slice:":5" %}
+                <div class="d-flex align-items-center mb-2">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-{% if activity.action == 'upload' %}upload{% elif activity.action == 'download' %}download{% elif activity.action == 'view' %}eye{% elif activity.action == 'update' %}edit{% elif activity.action == 'share' %}share-alt{% else %}file{% endif %} text-muted"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <small class="d-block">{{ activity.user.get_full_name }} {{ activity.get_action_display|lower }} this file</small>
+                        <small class="text-muted">{{ activity.timestamp|timesince }} ago</small>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center mb-0">No activity yet</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Shared Users (if owner) -->
+        {% if file.owner == request.user and file.visibility == 'restricted' %}
+        <div class="card shadow mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">Shared With</h6>
+            </div>
+            <div class="card-body">
+                {% for access in file.access_permissions.all %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <small class="d-block">{{ access.user.get_full_name }}</small>
+                        <small class="text-muted">{{ access.get_permission_display }}</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeAccess({{ access.id }})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center mb-0">Not shared with anyone</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Share Modal -->
+{% if file.owner == request.user and file.visibility == 'restricted' %}
+<div class="modal fade" id="shareModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="shareForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">User Email</label>
+                        <input type="email" name="user_email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Permission</label>
+                        <select name="permission" class="form-control">
+                            <option value="view">View Only</option>
+                            <option value="download">View & Download</option>
+                            <option value="edit">View, Download & Edit</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Expires At (Optional)</label>
+                        <input type="datetime-local" name="expires_at" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Share File</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleFavorite(fileId) {
+    $.ajax({
+        url: `{% url 'filemanager:toggle_favorite' 0 %}`.replace('0', fileId),
+        type: 'POST',
+        headers: {
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function(response) {
+            if (response.success) {
+                location.reload();
+            }
+        }
+    });
+}
+
+function removeAccess(accessId) {
+    if (confirm('Remove access for this user?')) {
+        $.ajax({
+            url: `{% url 'filemanager:remove_access' 0 %}`.replace('0', accessId),
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                }
+            }
+        });
+    }
+}
+
+$('#shareForm').submit(function(e) {
+    e.preventDefault();
+    
+    $.ajax({
+        url: '{% url "filemanager:share_file" file.id %}',
+        type: 'POST',
+        data: $(this).serialize(),
+        success: function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + response.message);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

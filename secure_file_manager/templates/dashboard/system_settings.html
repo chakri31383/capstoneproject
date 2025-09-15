@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}System Settings - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-cogs me-2"></i>System Settings</h2>
+    <a href="{% url 'dashboard:home' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>Configure System Settings
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% for setting in settings_list %}
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <strong>{{ setting.name }}</strong>
+                        </label>
+                        <p class="text-muted small">{{ setting.description }}</p>
+                        
+                        {% if setting.type == 'boolean' %}
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="{{ setting.key }}" 
+                                       value="true" {% if current_settings|lookup:setting.key == 'true' %}checked{% endif %}>
+                                <label class="form-check-label">
+                                    Enable {{ setting.name }}
+                                </label>
+                            </div>
+                        {% elif setting.type == 'number' %}
+                            <input type="number" name="{{ setting.key }}" class="form-control" 
+                                   value="{{ current_settings|lookup:setting.key }}" min="1" max="100">
+                        {% else %}
+                            <input type="text" name="{{ setting.key }}" class="form-control" 
+                                   value="{{ current_settings|lookup:setting.key }}">
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

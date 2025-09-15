@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Secure File Manager{% endblock %}
+
+{% block content %}
+<!-- Welcome Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-gradient-primary text-white">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h2 class="mb-2">Welcome back, {{ user.first_name }}!</h2>
+                        <p class="mb-0">Manage your files securely and efficiently with our advanced file management system.</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <i class="fas fa-tachometer-alt fa-4x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Files</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_files }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Storage Used</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_size }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-hdd fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Shared Files</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.shared_files }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-share-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Downloads</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_downloads }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-download fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Files -->
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Files</h6>
+                <a href="{% url 'filemanager:file_list' %}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% for file in recent_files %}
+                <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                    <div class="file-icon me-3">
+                        {% if file.file_type in '.jpg,.jpeg,.png,.gif' %}
+                            <i class="fas fa-file-image fa-2x text-info"></i>
+                        {% elif file.file_type == '.pdf' %}
+                            <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                        {% elif file.file_type in '.doc,.docx' %}
+                            <i class="fas fa-file-word fa-2x text-primary"></i>
+                        {% elif file.file_type in '.xls,.xlsx' %}
+                            <i class="fas fa-file-excel fa-2x text-success"></i>
+                        {% else %}
+                            <i class="fas fa-file fa-2x text-secondary"></i>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">
+                            <a href="{% url 'filemanager:view_file' file.id %}" class="text-decoration-none">
+                                {{ file.name }}
+                            </a>
+                            {% if file.is_favorite %}
+                                <i class="fas fa-heart text-danger ms-2"></i>
+                            {% endif %}
+                        </h6>
+                        <small class="text-muted">
+                            {{ file.formatted_size }} • {{ file.created_at|timesince }} ago
+                        </small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-{% if file.visibility == 'public' %}success{% elif file.visibility == 'restricted' %}warning{% else %}secondary{% endif %}">
+                            {{ file.get_visibility_display }}
+                        </span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4">
+                    <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No files uploaded yet</p>
+                    <a href="{% url 'filemanager:upload_file' %}" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>Upload Your First File
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions & Activity -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'filemanager:upload_file' %}" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>Upload File
+                    </a>
+                    <a href="{% url 'filemanager:file_list' %}?favorites=1" class="btn btn-outline-danger">
+                        <i class="fas fa-heart me-2"></i>My Favorites
+                    </a>
+                    <a href="{% url 'filemanager:shared_files' %}" class="btn btn-outline-info">
+                        <i class="fas fa-share-alt me-2"></i>Shared Files
+                    </a>
+                    <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-user me-2"></i>Edit Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Activity</h6>
+            </div>
+            <div class="card-body">
+                {% for activity in recent_activities %}
+                <div class="d-flex align-items-center mb-3">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-{% if activity.action == 'upload' %}upload text-success{% elif activity.action == 'download' %}download text-primary{% elif activity.action == 'view' %}eye text-info{% elif activity.action == 'update' %}edit text-warning{% elif activity.action == 'share' %}share-alt text-info{% else %}file text-secondary{% endif %}"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <small class="d-block">{{ activity.get_action_display }} 
+                            <strong>{{ activity.file.name|truncatechars:20 }}</strong>
+                        </small>
+                        <small class="text-muted">{{ activity.timestamp|timesince }} ago</small>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center mb-0">No recent activity</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Section (if admin user) -->
+{% if user.is_admin %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white py-3">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-cog me-2"></i>Admin Panel
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                            <h5>{{ admin_stats.total_users }}</h5>
+                            <small class="text-muted">Total Users</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-file-alt fa-2x text-success mb-2"></i>
+                            <h5>{{ admin_stats.total_files }}</h5>
+                            <small class="text-muted">All Files</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-hdd fa-2x text-info mb-2"></i>
+                            <h5>{{ admin_stats.total_storage }}</h5>
+                            <small class="text-muted">Storage Used</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-download fa-2x text-warning mb-2"></i>
+                            <h5>{{ admin_stats.total_downloads }}</h5>
+                            <small class="text-muted">Downloads</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-center mt-3">
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'dashboard:admin_users' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-users me-2"></i>Manage Users
+                        </a>
+                        <a href="{% url 'dashboard:admin_files' %}" class="btn btn-outline-success">
+                            <i class="fas fa-file-alt me-2"></i>All Files
+                        </a>
+                        <a href="{% url 'dashboard:system_stats' %}" class="btn btn-outline-info">
+                            <i class="fas fa-chart-bar me-2"></i>Statistics
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(87deg, #5e72e4 0, #825ee4 100%) !important;
+}
+</style>
+{% endblock %}

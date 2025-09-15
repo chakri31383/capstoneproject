@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Files - Secure File Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-files me-2"></i>My Files</h2>
+    <a href="{% url 'filemanager:upload_file' %}" class="btn btn-primary">
+        <i class="fas fa-upload me-2"></i>Upload File
+    </a>
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="q" class="form-control" placeholder="Search files..." 
+                       value="{{ request.GET.q }}">
+            </div>
+            <div class="col-md-3">
+                <select name="category" class="form-control">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="type" class="form-control">
+                    <option value="">All Types</option>
+                    <option value="image" {% if request.GET.type == 'image' %}selected{% endif %}>Images</option>
+                    <option value="document" {% if request.GET.type == 'document' %}selected{% endif %}>Documents</option>
+                    <option value="video" {% if request.GET.type == 'video' %}selected{% endif %}>Videos</option>
+                    <option value="archive" {% if request.GET.type == 'archive' %}selected{% endif %}>Archives</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- File Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-file fa-2x mb-2"></i>
+                <h4>{{ total_files }}</h4>
+                <small>Total Files</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-heart fa-2x mb-2"></i>
+                <h4>{{ favorite_files }}</h4>
+                <small>Favorites</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-share-alt fa-2x mb-2"></i>
+                <h4>{{ shared_files }}</h4>
+                <small>Shared</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-hdd fa-2x mb-2"></i>
+                <h4>{{ total_size }}</h4>
+                <small>Total Size</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Files Display Toggle -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <strong>{{ files.count }} files found</strong>
+    </div>
+    <div class="btn-group" role="group">
+        <button type="button" class="btn btn-outline-secondary active" id="gridView">
+            <i class="fas fa-th"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary" id="listView">
+            <i class="fas fa-list"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Files Grid View -->
+<div id="filesGrid" class="row">
+    {% for file in files %}
+    <div class="col-md-4 col-lg-3 mb-4">
+        <div class="card h-100 file-card" data-file-id="{{ file.id }}">
+            <div class="card-body text-center p-3">
+                <!-- File Icon/Thumbnail -->
+                <div class="file-icon mb-3">
+                    {% if file.file_type in '.jpg,.jpeg,.png,.gif' %}
+                        <img src="{{ file.file.url }}" alt="{{ file.name }}" 
+                             class="img-fluid rounded" style="max-height: 100px; max-width: 100%;">
+                    {% elif file.file_type == '.pdf' %}
+                        <i class="fas fa-file-pdf fa-3x text-danger"></i>
+                    {% elif file.file_type in '.doc,.docx' %}
+                        <i class="fas fa-file-word fa-3x text-primary"></i>
+                    {% elif file.file_type in '.xls,.xlsx' %}
+                        <i class="fas fa-file-excel fa-3x text-success"></i>
+                    {% elif file.file_type in '.ppt,.pptx' %}
+                        <i class="fas fa-file-powerpoint fa-3x text-warning"></i>
+                    {% elif file.file_type in '.zip,.rar' %}
+                        <i class="fas fa-file-archive fa-3x text-info"></i>
+                    {% elif file.file_type in '.mp4,.avi,.mov' %}
+                        <i class="fas fa-file-video fa-3x text-purple"></i>
+                    {% else %}
+                        <i class="fas fa-file fa-3x text-secondary"></i>
+                    {% endif %}
+                </div>
+                
+                <!-- File Info -->
+                <h6 class="card-title text-truncate" title="{{ file.name }}">{{ file.name }}</h6>
+                <small class="text-muted d-block">{{ file.formatted_size }}</small>
+                <small class="text-muted d-block">{{ file.created_at|date:"M d, Y" }}</small>
+                
+                <!-- Favorite Status -->
+                {% if file.is_favorite %}
+                    <i class="fas fa-heart text-danger position-absolute" style="top: 10px; right: 10px;"></i>
+                {% endif %}
+                
+                <!-- Visibility Badge -->
+                <span class="badge bg-{% if file.visibility == 'public' %}success{% elif file.visibility == 'restricted' %}warning{% else %}secondary{% endif %} mt-2">
+                    {{ file.get_visibility_display }}
+                </span>
+            </div>
+            
+            <div class="card-footer p-2">
+                <div class="btn-group w-100" role="group">
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewFile({{ file.id }})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="downloadFile({{ file.id }})">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="editFile({{ file.id }})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-{% if file.is_favorite %}danger{% else %}secondary{% endif %}" 
+                            onclick="toggleFavorite({{ file.id }})">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteFile({{ file.id }})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No files found</h4>
+            <p class="text-muted">Upload your first file to get started!</p>
+            <a href="{% url 'filemanager:upload_file' %}" class="btn btn-primary">
+                <i class="fas fa-upload me-2"></i>Upload File
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Files List View (Hidden by default) -->
+<div id="filesList" class="d-none">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Name</th>
+                    <th>Size</th>
+                    <th>Category</th>
+                    <th>Visibility</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in files %}
+                <tr>
+                    <td>
+                        {% if file.is_favorite %}
+                            <i class="fas fa-heart text-danger me-2"></i>
+                        {% endif %}
+                        {{ file.name }}
+                    </td>
+                    <td>{{ file.formatted_size }}</td>
+                    <td>{{ file.category.name|default:"Uncategorized" }}</td>
+                    <td>
+                        <span class="badge bg-{% if file.visibility == 'public' %}success{% elif file.visibility == 'restricted' %}warning{% else %}secondary{% endif %}">
+                            {{ file.get_visibility_display }}
+                        </span>
+                    </td>
+                    <td>{{ file.created_at|date:"M d, Y g:i A" }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary" onclick="viewFile({{ file.id }})" title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-success" onclick="downloadFile({{ file.id }})" title="Download">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn btn-outline-warning" onclick="editFile({{ file.id }})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-{% if file.is_favorite %}danger{% else %}secondary{% endif %}" 
+                                    onclick="toggleFavorite({{ file.id }})" title="Favorite">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteFile({{ file.id }})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if files.has_other_pages %}
+<nav aria-label="Files pagination">
+    <ul class="pagination justify-content-center">
+        {% if files.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ files.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">Previous</a>
+            </li>
+        {% endif %}
+        
+        {% for num in files.paginator.page_range %}
+            {% if files.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+            {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if files.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ files.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">Next</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// View Toggle
+$('#gridView').click(function() {
+    $(this).addClass('active');
+    $('#listView').removeClass('active');
+    $('#filesGrid').removeClass('d-none');
+    $('#filesList').addClass('d-none');
+});
+
+$('#listView').click(function() {
+    $(this).addClass('active');
+    $('#gridView').removeClass('active');
+    $('#filesGrid').addClass('d-none');
+    $('#filesList').removeClass('d-none');
+});
+
+// File Actions
+function viewFile(fileId) {
+    window.open(`{% url 'filemanager:view_file' 0 %}`.replace('0', fileId), '_blank');
+}
+
+function downloadFile(fileId) {
+    window.location.href = `{% url 'filemanager:download_file' 0 %}`.replace('0', fileId);
+}
+
+function editFile(fileId) {
+    window.location.href = `{% url 'filemanager:edit_file' 0 %}`.replace('0', fileId);
+}
+
+function toggleFavorite(fileId) {
+    $.ajax({
+        url: `{% url 'filemanager:toggle_favorite' 0 %}`.replace('0', fileId),
+        type: 'POST',
+        headers: {
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function(response) {
+            if (response.success) {
+                location.reload();
+            }
+        }
+    });
+}
+
+function deleteFile(fileId) {
+    if (confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
+        $.ajax({
+            url: `{% url 'filemanager:delete_file' 0 %}`.replace('0', fileId),
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('Error deleting file: ' + response.message);
+                }
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

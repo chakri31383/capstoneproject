@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Shared Files - Secure File Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-share-alt me-2"></i>Shared Files</h2>
+    <a href="{% url 'filemanager:file_list' %}" class="btn btn-primary">
+        <i class="fas fa-arrow-left me-2"></i>Back to My Files
+    </a>
+</div>
+
+<div class="row">
+    {% for file in files %}
+    <div class="col-md-4 col-lg-3 mb-4">
+        <div class="card h-100 file-card">
+            <div class="card-body text-center p-3">
+                <div class="file-icon mb-3">
+                    {% if file.file_type in '.jpg,.jpeg,.png,.gif' %}
+                        <img src="{{ file.file.url }}" alt="{{ file.name }}" 
+                             class="img-fluid rounded" style="max-height: 100px; max-width: 100%;">
+                    {% elif file.file_type == '.pdf' %}
+                        <i class="fas fa-file-pdf fa-3x text-danger"></i>
+                    {% elif file.file_type in '.doc,.docx' %}
+                        <i class="fas fa-file-word fa-3x text-primary"></i>
+                    {% else %}
+                        <i class="fas fa-file fa-3x text-secondary"></i>
+                    {% endif %}
+                </div>
+                
+                <h6 class="card-title text-truncate">{{ file.name }}</h6>
+                <small class="text-muted d-block">{{ file.formatted_size }}</small>
+                <small class="text-muted d-block">by {{ file.owner.get_full_name }}</small>
+                
+                <span class="badge bg-info mt-2">Shared</span>
+            </div>
+            
+            <div class="card-footer p-2">
+                <div class="btn-group w-100">
+                    <a href="{% url 'filemanager:view_file' file.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'filemanager:download_file' file.id %}" class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="fas fa-share-alt fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No shared files</h4>
+            <p class="text-muted">Files shared with you will appear here.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

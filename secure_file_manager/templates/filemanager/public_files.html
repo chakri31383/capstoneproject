@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Public Files - Secure File Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-globe me-2"></i>Public Files</h2>
+    <a href="{% url 'filemanager:file_list' %}" class="btn btn-primary">
+        <i class="fas fa-arrow-left me-2"></i>Back to My Files
+    </a>
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="q" class="form-control" placeholder="Search public files..." 
+                       value="{{ query }}">
+            </div>
+            <div class="col-md-3">
+                <select name="category" class="form-control">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category_id == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="type" class="form-control">
+                    <option value="">All Types</option>
+                    <option value="image" {% if file_type == 'image' %}selected{% endif %}>Images</option>
+                    <option value="document" {% if file_type == 'document' %}selected{% endif %}>Documents</option>
+                    <option value="video" {% if file_type == 'video' %}selected{% endif %}>Videos</option>
+                    <option value="archive" {% if file_type == 'archive' %}selected{% endif %}>Archives</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>{{ stats.total_public_files }}</strong> public files available from other users
+        </div>
+    </div>
+</div>
+
+<!-- Files Display -->
+<div class="row">
+    {% for file in files %}
+    <div class="col-md-4 col-lg-3 mb-4">
+        <div class="card h-100 file-card">
+            <div class="card-body text-center p-3">
+                <div class="file-icon mb-3">
+                    {% if file.file_type in '.jpg,.jpeg,.png,.gif' %}
+                        <img src="{{ file.file.url }}" alt="{{ file.name }}" 
+                             class="img-fluid rounded" style="max-height: 100px; max-width: 100%;">
+                    {% elif file.file_type == '.pdf' %}
+                        <i class="fas fa-file-pdf fa-3x text-danger"></i>
+                    {% elif file.file_type in '.doc,.docx' %}
+                        <i class="fas fa-file-word fa-3x text-primary"></i>
+                    {% elif file.file_type in '.xls,.xlsx' %}
+                        <i class="fas fa-file-excel fa-3x text-success"></i>
+                    {% elif file.file_type in '.ppt,.pptx' %}
+                        <i class="fas fa-file-powerpoint fa-3x text-warning"></i>
+                    {% elif file.file_type in '.zip,.rar' %}
+                        <i class="fas fa-file-archive fa-3x text-info"></i>
+                    {% elif file.file_type in '.mp4,.avi,.mov' %}
+                        <i class="fas fa-file-video fa-3x text-purple"></i>
+                    {% else %}
+                        <i class="fas fa-file fa-3x text-secondary"></i>
+                    {% endif %}
+                </div>
+                
+                <h6 class="card-title text-truncate" title="{{ file.name }}">{{ file.name }}</h6>
+                <small class="text-muted d-block">{{ file.formatted_size }}</small>
+                <small class="text-muted d-block">by {{ file.owner.get_full_name }}</small>
+                <small class="text-muted d-block">{{ file.created_at|date:"M d, Y" }}</small>
+                
+                <span class="badge bg-success mt-2">Public</span>
+                {% if file.category %}
+                    <span class="badge bg-secondary mt-2">{{ file.category.name }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="card-footer p-2">
+                <div class="btn-group w-100">
+                    <a href="{% url 'filemanager:view_file' file.id %}" class="btn btn-sm btn-outline-primary" title="View">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'filemanager:download_file' file.id %}" class="btn btn-sm btn-outline-success" title="Download">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="fas fa-globe fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No public files found</h4>
+            <p class="text-muted">No public files match your search criteria.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if files.has_other_pages %}
+<nav aria-label="Public files pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if files.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ files.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}{% if file_type %}&type={{ file_type }}{% endif %}">Previous</a>
+            </li>
+        {% endif %}
+        
+        {% for num in files.paginator.page_range %}
+            {% if files.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+            {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}{% if file_type %}&type={{ file_type }}{% endif %}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if files.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ files.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if category_id %}&category={{ category_id }}{% endif %}{% if file_type %}&type={{ file_type }}{% endif %}">Next</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

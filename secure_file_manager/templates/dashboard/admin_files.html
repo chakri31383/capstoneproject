@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}All Files - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-file-alt me-2"></i>All Files Management</h2>
+    <a href="{% url 'dashboard:home' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+</div>
+
+<!-- Search and Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <input type="text" name="search" class="form-control" placeholder="Search files..." 
+                       value="{{ search_query }}">
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="owner" class="form-control" placeholder="Owner email..." 
+                       value="{{ owner_filter }}">
+            </div>
+            <div class="col-md-2">
+                <select name="category" class="form-control">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="visibility" class="form-control">
+                    <option value="">All Visibility</option>
+                    <option value="private" {% if visibility_filter == 'private' %}selected{% endif %}>Private</option>
+                    <option value="restricted" {% if visibility_filter == 'restricted' %}selected{% endif %}>Restricted</option>
+                    <option value="public" {% if visibility_filter == 'public' %}selected{% endif %}>Public</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'dashboard:admin_files' %}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-redo me-1"></i>Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Files Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-file fa-2x mb-2"></i>
+                <h4>{{ files.paginator.count }}</h4>
+                <small>Total Files</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-eye fa-2x mb-2"></i>
+                <h4>{{ files|length }}</h4>
+                <small>Showing Now</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-share-alt fa-2x mb-2"></i>
+                <h4>{{ files.object_list|length }}</h4>
+                <small>This Page</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-filter fa-2x mb-2"></i>
+                <h4>{% if search_query or owner_filter or category_filter or visibility_filter %}Active{% else %}None{% endif %}</h4>
+                <small>Filters</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Files Table -->
+<div class="card shadow">
+    <div class="card-header">
+        <h6 class="m-0 font-weight-bold text-primary">
+            Files List ({{ files.paginator.count }} total)
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>File Details</th>
+                        <th>Owner</th>
+                        <th>Size</th>
+                        <th>Category</th>
+                        <th>Visibility</th>
+                        <th>Downloads</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="file-icon me-3">
+                                    {% if file.file_type in '.jpg,.jpeg,.png,.gif' %}
+                                        <i class="fas fa-file-image fa-2x text-info"></i>
+                                    {% elif file.file_type == '.pdf' %}
+                                        <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                                    {% elif file.file_type in '.doc,.docx' %}
+                                        <i class="fas fa-file-word fa-2x text-primary"></i>
+                                    {% elif file.file_type in '.xls,.xlsx' %}
+                                        <i class="fas fa-file-excel fa-2x text-success"></i>
+                                    {% elif file.file_type in '.ppt,.pptx' %}
+                                        <i class="fas fa-file-powerpoint fa-2x text-warning"></i>
+                                    {% elif file.file_type in '.zip,.rar' %}
+                                        <i class="fas fa-file-archive fa-2x text-info"></i>
+                                    {% elif file.file_type in '.mp4,.avi,.mov' %}
+                                        <i class="fas fa-file-video fa-2x text-purple"></i>
+                                    {% else %}
+                                        <i class="fas fa-file fa-2x text-secondary"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>{{ file.name|truncatechars:30 }}</strong>
+                                    {% if file.is_favorite %}
+                                        <i class="fas fa-heart text-danger ms-1"></i>
+                                    {% endif %}
+                                    <small class="d-block text-muted">{{ file.file_type|upper }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>
+                                <strong>{{ file.owner.get_full_name }}</strong>
+                                <small class="d-block text-muted">{{ file.owner.email }}</small>
+                            </div>
+                        </td>
+                        <td>{{ file.formatted_size }}</td>
+                        <td>
+                            {% if file.category %}
+                                <span class="badge bg-secondary">{{ file.category.name }}</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">Uncategorized</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if file.visibility == 'public' %}success{% elif file.visibility == 'restricted' %}warning{% else %}secondary{% endif %}">
+                                {{ file.get_visibility_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ file.download_count }}</span>
+                        </td>
+                        <td>
+                            <div>
+                                <small>{{ file.created_at|date:"M d, Y" }}</small>
+                                <small class="d-block text-muted">{{ file.created_at|time:"g:i A" }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{% url 'filemanager:view_file' file.id %}" 
+                                   class="btn btn-outline-primary" title="View File">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'filemanager:download_file' file.id %}" 
+                                   class="btn btn-outline-success" title="Download">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                <button class="btn btn-outline-danger" 
+                                        onclick="deleteFileAdmin({{ file.id }}, '{{ file.name|escapejs }}')" 
+                                        title="Delete File">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No files found</h5>
+                            <p class="text-muted">No files match your current filters.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if files.has_other_pages %}
+<nav aria-label="Files pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if files.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ files.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if owner_filter %}&owner={{ owner_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if visibility_filter %}&visibility={{ visibility_filter }}{% endif %}">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </a>
+            </li>
+        {% endif %}
+        
+        {% for num in files.paginator.page_range %}
+            {% if files.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+            {% elif num > files.number|add:'-3' and num < files.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if owner_filter %}&owner={{ owner_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if visibility_filter %}&visibility={{ visibility_filter }}{% endif %}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if files.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ files.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if owner_filter %}&owner={{ owner_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if visibility_filter %}&visibility={{ visibility_filter }}{% endif %}">
+                    Next <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Bulk Actions Modal -->
+<div class="modal fade" id="bulkActionsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Actions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Select action for selected files:</p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-danger" onclick="bulkDeleteFiles()">
+                        <i class="fas fa-trash me-2"></i>Delete Selected Files
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteFileAdmin(fileId, fileName) {
+    if (confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
+        $.ajax({
+            url: `{% url 'dashboard:delete_file_admin' 0 %}`.replace('0', fileId),
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('Network error. Please try again.');
+            }
+        });
+    }
+}
+
+// Auto-refresh every 5 minutes
+setTimeout(function() {
+    location.reload();
+}, 300000);
+</script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Verify OTP - Secure File Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="fas fa-shield-alt fa-3x text-warning mb-3"></i>
+                    <h3 class="card-title">Verify OTP</h3>
+                    <p class="text-muted">
+                        We've sent a 6-digit code to<br>
+                        <strong>{{ user.email }}</strong>
+                    </p>
+                </div>
+                
+                <form method="post" id="otpForm">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.otp_code.id_for_label }}" class="form-label text-center w-100">
+                            Enter OTP Code
+                        </label>
+                        {{ form.otp_code }}
+                        {% if form.otp_code.errors %}
+                            <div class="text-danger small mt-1 text-center">{{ form.otp_code.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 mb-3">
+                        <i class="fas fa-check me-2"></i>Verify Code
+                    </button>
+                </form>
+                
+                <div class="text-center">
+                    <p class="mb-2">Didn't receive the code?</p>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resendBtn">
+                        <i class="fas fa-redo me-1"></i>Resend OTP
+                    </button>
+                    <div id="countdown" class="small text-muted mt-2" style="display: none;">
+                        Resend available in <span id="timer">60</span> seconds
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    let countdownTimer = null;
+    
+    $('#resendBtn').click(function() {
+        const button = $(this);
+        button.prop('disabled', true);
+        
+        $.ajax({
+            url: '{% url "accounts:resend_otp" %}',
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('OTP resent successfully!');
+                    startCountdown();
+                } else {
+                    alert('Failed to resend OTP: ' + response.message);
+                    button.prop('disabled', false);
+                }
+            },
+            error: function() {
+                alert('Network error. Please try again.');
+                button.prop('disabled', false);
+            }
+        });
+    });
+    
+    function startCountdown() {
+        let timeLeft = 60;
+        $('#countdown').show();
+        $('#timer').text(timeLeft);
+        
+        countdownTimer = setInterval(function() {
+            timeLeft--;
+            $('#timer').text(timeLeft);
+            
+            if (timeLeft <= 0) {
+                clearInterval(countdownTimer);
+                $('#countdown').hide();
+                $('#resendBtn').prop('disabled', false);
+            }
+        }, 1000);
+    }
+});
+</script>
+{% endblock %}
